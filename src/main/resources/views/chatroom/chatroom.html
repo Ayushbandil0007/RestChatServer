@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chatroom: {{uri.topic}}</title>
+    <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <link rel="stylesheet" href="../static/views/chatroom/style.css" type="text/css">
+</head>
+<body>
+<div class="container">
+    <br/>
+    <div class="chat_info">
+        <h3 id="user" class="user"></h3>
+        <h3>You are chatting in: {{uri.topic}}</h3>
+    </div>
+    <br/>
+    <div class="table-responsive">
+        <div id="chatbox" class="chatbox">
+            <div class="chat_history" id="chat_history"></div>
+            <div class="form-group">
+                <input type="text" name="chat_message" id="chat_message" class="form-control" placeholder="Your message..."/>
+                <button type="button" id="send_chat" class="btn btn-info send_chat">Send</button>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
+
+<script>
+function executeQuery() {
+    $.ajax({
+        url: '/getMessages/{{uri.topic}}',
+        success: function(data) {
+            make_chat_dialog_box(data);
+        }
+    });
+
+    updateCall();
+}
+
+$('#send_chat').click(function(){
+    var message = document.getElementById("chat_message").value;
+    var user = sessionStorage.getItem("username");
+    var url = window.location.href;
+    $.ajax
+    ({
+        url: '/sendMessage',
+        data: {"message": message,
+            "user": user,
+            "url": url
+        },
+        type: 'put',
+        success: function(result)
+        {
+            document.getElementById("chat_message").value = "";
+        }
+    });
+});
+
+function updateCall(){
+    setTimeout(function(){executeQuery()}, 2000);
+}
+
+function make_chat_dialog_box(data) {
+    var returnedData = JSON.parse(data);
+    var currentUser = sessionStorage.getItem("username");
+    $('.chat_history').html("");
+    $.each (returnedData, function (index, data) {
+        if(data["user"] === currentUser){
+            var modal_content = '<div class="current_user_div' +index +'"><p class="current_user">';
+            modal_content += data["time"] + " " + data["user"] + ": " + data["message"];
+            modal_content += '</p></div>';
+            $('.chat_history').append(modal_content);
+        } else{
+            var modal_content = '<div class="other_user_div' +index +'"><p class="other_user">';
+            modal_content += data["time"] + " " + data["user"] + ": " + data["message"];
+            modal_content += '</p></div>';
+            $('.chat_history').append(modal_content);
+        }
+    });
+
+    window.setInterval(function() {
+        var elem = document.getElementById('chat_history');
+        elem.scrollTop = elem.scrollHeight;
+    }, 500);
+}
+
+$(document).ready(function() {
+    executeQuery();
+});
+
+window.onload=function(){
+    document.getElementById("user").innerHTML =
+        "<h3> Welcome " + sessionStorage.getItem("username"); + "</h3>";
+}
+
+</script>
